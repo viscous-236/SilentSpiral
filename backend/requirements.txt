@@ -1,0 +1,41 @@
+# ── Core API ──────────────────────────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.4
+pydantic-settings==2.7.0
+email-validator==2.2.0
+python-multipart==0.0.20      # needed for form data uploads (future use)
+
+# ── NLP / AI ──────────────────────────────────────────────────────────────────
+transformers==4.47.1
+torch              # CPU-only; swap for torch+cu121 if GPU available
+sentence-transformers==3.3.1  # Used in Mirror Prompt (Task 3 vector search)
+
+# ── AI Agents (Task 3) ────────────────────────────────────────────────────────
+langchain==0.3.14
+langgraph==0.2.62
+langchain-huggingface>=0.1.0  # ChatHuggingFace + HF Inference API (NLP emotion pipeline)
+huggingface_hub>=0.24.0       # HF transformers hub
+groq>=0.12.0                  # Free-tier LLM for Reflection Agent (replaces HF paid inference)
+
+# ── Vector DB (Task 3) ────────────────────────────────────────────────────────
+qdrant-client[fastembed]>=1.9.0   # Qdrant Cloud SDK; fastembed extra for model helpers
+
+# ── Analytics / Data (Task 2) ────────────────────────────────────────────────
+pandas>=2.2.0
+numpy>=1.26.0
+
+# ── Database ──────────────────────────────────────────────────────────────────
+motor>=3.6.0                 # Async MongoDB driver for Atlas auth persistence
+sqlalchemy==2.0.36
+asyncpg>=0.30.0               # Async Postgres driver for Supabase
+greenlet>=3.1.1               # Required by SQLAlchemy async runtime in some envs
+alembic==1.14.0
+
+# ── HTTP Client ───────────────────────────────────────────────────────────────
+httpx==0.28.1
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+pytest==8.3.4
+pytest-asyncio==0.25.0
+httpx                         # used by TestClient
