@@ -2,14 +2,6 @@ import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import Constants from "expo-constants";
 import { NativeModules, Platform } from "react-native";
 
-// ─── Base URL resolution with failover ─────────────────────────────────────────
-
-function normalizeBaseUrl(url: string): string {
-  const trimmed = url.trim().replace(/\/+$/, "");
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return `http://${trimmed}`;
-}
-
 function parseHost(candidate?: string): string | null {
   if (!candidate) return null;
   const withoutScheme = candidate.replace(/^[a-z]+:\/\//i, "");
@@ -18,49 +10,37 @@ function parseHost(candidate?: string): string | null {
   return host;
 }
 
-function buildApiBaseUrlCandidates(): string[] {
+function buildLocalApiBaseUrlCandidates(): string[] {
   const unique = new Set<string>();
-
   const addCandidate = (candidate?: string | null) => {
     if (!candidate) return;
-    unique.add(normalizeBaseUrl(candidate));
+    unique.add(candidate.replace(/\/+$/, ""));
   };
 
-  const envBase = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
-  addCandidate(envBase);
+  if (__DEV__) {
+    const c = Constants as unknown as {
+      expoConfig?: { hostUri?: string };
+      expoGoConfig?: { debuggerHost?: string };
+      manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } };
+      manifest?: { debuggerHost?: string };
+      linkingUri?: string;
+    };
 
-  // Keep production deterministic: in EAS builds we should only talk to the
-  // configured backend URL, not local emulator/dev-machine addresses.
-  if (!__DEV__) {
-    return Array.from(unique);
+    const hostCandidates = [
+      NativeModules?.SourceCode?.scriptURL as string | undefined,
+      c.expoConfig?.hostUri,
+      c.expoGoConfig?.debuggerHost,
+      c.manifest2?.extra?.expoGo?.debuggerHost,
+      c.manifest?.debuggerHost,
+      c.linkingUri,
+    ];
+
+    for (const candidate of hostCandidates) {
+      const host = parseHost(candidate);
+      if (host) addCandidate(`http://${host}:8000`);
+    }
   }
 
-  const c = Constants as unknown as {
-    expoConfig?: { hostUri?: string };
-    expoGoConfig?: { debuggerHost?: string };
-    manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } };
-    manifest?: { debuggerHost?: string };
-    linkingUri?: string;
-  };
-
-  const sourceCodeScriptUrl: string | undefined =
-    NativeModules?.SourceCode?.scriptURL;
-
-  const hostCandidates = [
-    sourceCodeScriptUrl,
-    c.expoConfig?.hostUri,
-    c.expoGoConfig?.debuggerHost,
-    c.manifest2?.extra?.expoGo?.debuggerHost,
-    c.manifest?.debuggerHost,
-    c.linkingUri,
-  ];
-
-  for (const candidate of hostCandidates) {
-    const host = parseHost(candidate);
-    if (host) addCandidate(`http://${host}:8000`);
-  }
-
-  // Emulator + local desktop defaults.
   if (Platform.OS === "android") {
     addCandidate("http://10.0.2.2:8000");
   }
@@ -70,8 +50,11 @@ function buildApiBaseUrlCandidates(): string[] {
   return Array.from(unique);
 }
 
-export const API_BASE_URL_CANDIDATES = buildApiBaseUrlCandidates();
-let activeApiBaseUrl = API_BASE_URL_CANDIDATES[0] ?? "http://127.0.0.1:8000";
+export function getApiBaseUrlCandidates(): string[] {
+  return buildLocalApiBaseUrlCandidates();
+}
+
+let activeApiBaseUrl = getApiBaseUrlCandidates()[0] ?? "http://127.0.0.1:8000";
 export const API_BASE_URL = activeApiBaseUrl;
 
 export function getActiveApiBaseUrl(): string {
@@ -106,7 +89,7 @@ async function retryWithFailover(
   if (originalConfig.__failoverAttempted) return null;
   originalConfig.__failoverAttempted = true;
 
-  const fallbacks = API_BASE_URL_CANDIDATES.filter(
+  const fallbacks = getApiBaseUrlCandidates().filter(
     (url) => url !== activeApiBaseUrl,
   );
 
@@ -117,10 +100,10 @@ async function retryWithFailover(
         baseURL: candidate,
       });
       activeApiBaseUrl = candidate;
-      console.log(`[API] Failover switched base URL → ${activeApiBaseUrl}`);
+      console.log(`[API] Failover switched base URL -> ${activeApiBaseUrl}`);
       return response;
     } catch {
-      // try next candidate
+      // try next local candidate
     }
   }
 
@@ -129,7 +112,7 @@ async function retryWithFailover(
 
 // ─── Startup diagnostic ─────────────────────────────────────────────────────
 // Visible in Metro logs for quick diagnosis of routing and network issues.
-console.log(`[API] Base URL candidates → ${API_BASE_URL_CANDIDATES.join(", ")}`);
+console.log(`[API] Base URL candidates → ${getApiBaseUrlCandidates().join(", ")}`);
 console.log(`[API] Active base URL → ${activeApiBaseUrl}`);
 
 // ─── Axios Instance ─────────────────────────────────────────────────────────
