@@ -29,6 +29,12 @@ function buildApiBaseUrlCandidates(): string[] {
   const envBase = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
   addCandidate(envBase);
 
+  // Keep production deterministic: in EAS builds we should only talk to the
+  // configured backend URL, not local emulator/dev-machine addresses.
+  if (!__DEV__) {
+    return Array.from(unique);
+  }
+
   const c = Constants as unknown as {
     expoConfig?: { hostUri?: string };
     expoGoConfig?: { debuggerHost?: string };

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./api";
+import { getActiveApiBaseUrl } from "./api";
 
 export type VoiceLocale = "en-US" | "hi-IN";
 
@@ -40,10 +40,10 @@ export async function transcribeAudioUri(
 
   const envFallbacks = process.env.EXPO_PUBLIC_API_FALLBACK_URLS
     ?.split(",")
-    .map((u) => u.trim())
+    .map((u: string) => u.trim())
     .filter(Boolean) ?? [];
 
-  const baseCandidates = [API_BASE_URL, ...envFallbacks].filter(
+  const baseCandidates = [getActiveApiBaseUrl(), ...envFallbacks].filter(
     (url, idx, all) => all.indexOf(url) === idx,
   );
 

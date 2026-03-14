@@ -40,6 +40,13 @@ type MindfulExercise = {
   steps: string[];
 };
 
+type GuideStep = {
+  title: string;
+  userAction: string;
+  appAction: string;
+  purpose: string;
+};
+
 const QUOTE_PREF_KEY_PREFIX = "spiral_quote_category_v1";
 
 const INSPIRATION_QUOTES: InspirationQuote[] = [
@@ -90,7 +97,8 @@ const MINDFUL_EXERCISES: MindfulExercise[] = [
     id: "box-breath",
     title: "Box Breath Reset",
     durationSeconds: 120,
-    guidance: "Use this when your mind feels scattered, rushed, or overstimulated.",
+    guidance:
+      "Use this when your mind feels scattered, rushed, or overstimulated.",
     steps: [
       "Inhale through the nose for 4 counts.",
       "Hold gently for 4 counts.",
@@ -123,6 +131,39 @@ const MINDFUL_EXERCISES: MindfulExercise[] = [
       "Breathe into one tense spot for 3 slow breaths.",
       "End with one hand on chest and one on belly.",
     ],
+  },
+];
+
+const GUIDE_STEPS: GuideStep[] = [
+  {
+    title: "Journal entry",
+    userAction: "Write freely or use voice input.",
+    appAction: "Saves your entry and runs emotion analysis.",
+    purpose: "Capture your day with low effort and high honesty.",
+  },
+  {
+    title: "Emotion labels",
+    userAction: "Review top emotions and intensity.",
+    appAction: "Maps your text into emotional signals.",
+    purpose: "Turn vague feelings into clearer language.",
+  },
+  {
+    title: "Reflection prompts",
+    userAction: "Answer one or two follow-up prompts.",
+    appAction: "Generates gentle questions from your entry context.",
+    purpose: "Understand the why behind the feeling.",
+  },
+  {
+    title: "Insights",
+    userAction: "Open Insights to view trends.",
+    appAction: "Calculates timeline, volatility, and patterns.",
+    purpose: "Reveal repeating cycles across days and weeks.",
+  },
+  {
+    title: "Coach suggestions",
+    userAction: "Try one tiny step for tomorrow.",
+    appAction: "Suggests a lightweight challenge when needed.",
+    purpose: "Convert awareness into gentle action.",
   },
 ];
 
@@ -182,6 +223,7 @@ export default function LandingScreen() {
 
   const [timerVisible, setTimerVisible] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [guideVisible, setGuideVisible] = useState(false);
   const [activeExerciseId, setActiveExerciseId] = useState(
     MINDFUL_EXERCISES[0].id,
   );
@@ -198,11 +240,7 @@ export default function LandingScreen() {
     const hydratePreference = async () => {
       try {
         const storedCategory = await AsyncStorage.getItem(quotePreferenceKey);
-        if (
-          isMounted &&
-          storedCategory &&
-          isQuoteCategory(storedCategory)
-        ) {
+        if (isMounted && storedCategory && isQuoteCategory(storedCategory)) {
           setQuoteCategory(storedCategory);
         }
       } finally {
@@ -231,8 +269,9 @@ export default function LandingScreen() {
 
   const selectedExercise = useMemo(
     () =>
-      MINDFUL_EXERCISES.find((exercise) => exercise.id === selectedExerciseId) ??
-      MINDFUL_EXERCISES[0],
+      MINDFUL_EXERCISES.find(
+        (exercise) => exercise.id === selectedExerciseId,
+      ) ?? MINDFUL_EXERCISES[0],
     [selectedExerciseId],
   );
 
@@ -251,21 +290,19 @@ export default function LandingScreen() {
   const progressPercent =
     activeExercise.durationSeconds === 0
       ? 0
-      : Math.min(
-        (elapsedSeconds / activeExercise.durationSeconds) * 100,
-        100,
-      );
+      : Math.min((elapsedSeconds / activeExercise.durationSeconds) * 100, 100);
 
   const currentStepIndex = Math.min(
     Math.floor(
       (elapsedSeconds / Math.max(activeExercise.durationSeconds, 1)) *
-      activeExercise.steps.length,
+        activeExercise.steps.length,
     ),
     Math.max(activeExercise.steps.length - 1, 0),
   );
 
   const currentStepText =
-    activeExercise.steps[currentStepIndex] ?? "Breathe gently and stay in the present moment.";
+    activeExercise.steps[currentStepIndex] ??
+    "Breathe gently and stay in the present moment.";
 
   const sessionCompleted = remainingSeconds === 0;
 
@@ -316,6 +353,14 @@ export default function LandingScreen() {
     setIsTimerRunning(true);
   }, []);
 
+  const handleOpenGuide = useCallback(() => {
+    setGuideVisible(true);
+  }, []);
+
+  const handleCloseGuide = useCallback(() => {
+    setGuideVisible(false);
+  }, []);
+
   const toggleTimerRunning = useCallback(() => {
     if (sessionCompleted) return;
     setIsTimerRunning((prev) => !prev);
@@ -337,7 +382,8 @@ export default function LandingScreen() {
               <View>
                 <Text style={styles.timerTitle}>{activeExercise.title}</Text>
                 <Text style={styles.timerSubtitle}>
-                  {formatDurationLabel(activeExercise.durationSeconds)} guided practice
+                  {formatDurationLabel(activeExercise.durationSeconds)} guided
+                  practice
                 </Text>
               </View>
               <Pressable
@@ -347,12 +393,18 @@ export default function LandingScreen() {
                 ]}
                 onPress={handleCloseTimer}
               >
-                <Ionicons name="close-outline" size={20} color={C.textPrimary} />
+                <Ionicons
+                  name="close-outline"
+                  size={20}
+                  color={C.textPrimary}
+                />
               </Pressable>
             </View>
 
             <View style={styles.timerClockWrap}>
-              <Text style={styles.timerClock}>{formatSeconds(remainingSeconds)}</Text>
+              <Text style={styles.timerClock}>
+                {formatSeconds(remainingSeconds)}
+              </Text>
               <Text style={styles.timerStatus}>
                 {sessionCompleted
                   ? "Completed"
@@ -363,12 +415,16 @@ export default function LandingScreen() {
             </View>
 
             <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+              <View
+                style={[styles.progressFill, { width: `${progressPercent}%` }]}
+              />
             </View>
 
             <View style={styles.timerStepCard}>
               <Text style={styles.timerStepLabel}>
-                Step {Math.min(currentStepIndex + 1, activeExercise.steps.length)} of {activeExercise.steps.length}
+                Step{" "}
+                {Math.min(currentStepIndex + 1, activeExercise.steps.length)} of{" "}
+                {activeExercise.steps.length}
               </Text>
               <Text style={styles.timerStepText}>{currentStepText}</Text>
             </View>
@@ -410,7 +466,11 @@ export default function LandingScreen() {
                 ]}
                 onPress={handleRestartTimer}
               >
-                <Ionicons name="refresh-outline" size={16} color={C.textPrimary} />
+                <Ionicons
+                  name="refresh-outline"
+                  size={16}
+                  color={C.textPrimary}
+                />
                 <Text style={styles.timerSecondaryActionText}>Restart</Text>
               </Pressable>
 
@@ -429,6 +489,78 @@ export default function LandingScreen() {
         </View>
       </Modal>
 
+      <Modal
+        visible={guideVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={handleCloseGuide}
+      >
+        <View style={styles.guideOverlay}>
+          <View style={styles.guideSheet}>
+            <View style={styles.guideHeader}>
+              <View style={styles.guideTitleWrap}>
+                <Text style={styles.guideTitle}>How to use Silent Spiral</Text>
+                <Text style={styles.guideSubtitle}>
+                  Journal, reflect, track patterns, then take one small next
+                  step.
+                </Text>
+              </View>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.timerIconButton,
+                  { opacity: pressed ? 0.8 : 1 },
+                ]}
+                onPress={handleCloseGuide}
+              >
+                <Ionicons
+                  name="close-outline"
+                  size={20}
+                  color={C.textPrimary}
+                />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.guideScroll}
+              contentContainerStyle={styles.guideContent}
+              showsVerticalScrollIndicator={false}
+            >
+              {GUIDE_STEPS.map((step, index) => (
+                <View key={step.title} style={styles.guideStepCard}>
+                  <View style={styles.guideStepHeader}>
+                    <View style={styles.stepIndex}>
+                      <Text style={styles.stepIndexText}>{index + 1}</Text>
+                    </View>
+                    <Text style={styles.guideStepTitle}>{step.title}</Text>
+                  </View>
+
+                  <Text style={styles.guideStepMeta}>
+                    You do: {step.userAction}
+                  </Text>
+                  <Text style={styles.guideStepMeta}>
+                    App does: {step.appAction}
+                  </Text>
+                  <Text style={styles.guideStepMeta}>
+                    Purpose: {step.purpose}
+                  </Text>
+                </View>
+              ))}
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.startExerciseButton,
+                  { opacity: pressed ? 0.88 : 1 },
+                ]}
+                onPress={handleCloseGuide}
+              >
+                <Ionicons name="checkmark-outline" size={18} color="#151515" />
+                <Text style={styles.startExerciseButtonText}>Got it</Text>
+              </Pressable>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -439,10 +571,15 @@ export default function LandingScreen() {
             <Text style={styles.kicker}>{getGreeting()}</Text>
             <Text style={styles.title}>A softer start for your mind</Text>
             <Text style={styles.subtitle}>
-              Arrive gently with one quote and one short practice, then journal when you feel ready.
+              Arrive gently with one quote and one short practice, then journal
+              when you feel ready.
             </Text>
           </View>
-          <Pressable onPress={toggleTheme} style={styles.themeToggle} hitSlop={8}>
+          <Pressable
+            onPress={toggleTheme}
+            style={styles.themeToggle}
+            hitSlop={8}
+          >
             <Ionicons
               name={isDark ? "sunny-outline" : "moon-outline"}
               size={20}
@@ -457,7 +594,8 @@ export default function LandingScreen() {
             <Text style={styles.primaryTitle}>Ease in before you write</Text>
           </View>
           <Text style={styles.primaryText}>
-            Give yourself one mindful minute first. Your journal will be here when you want to go deeper.
+            Give yourself one mindful minute first. Your journal will be here
+            when you want to go deeper.
           </Text>
 
           <View style={styles.primaryActions}>
@@ -491,7 +629,11 @@ export default function LandingScreen() {
 
         <View style={styles.card}>
           <View style={styles.cardHeading}>
-            <Ionicons name="chatbox-ellipses-outline" size={16} color={C.amber} />
+            <Ionicons
+              name="chatbox-ellipses-outline"
+              size={16}
+              color={C.amber}
+            />
             <Text style={styles.cardTitle}>Inspiration Quotes</Text>
           </View>
 
@@ -524,7 +666,9 @@ export default function LandingScreen() {
 
           <Text style={styles.quoteText}>{`"${quote.text}"`}</Text>
           <Text style={styles.quoteAuthor}>{quote.author}</Text>
-          <Text style={styles.cardHint}>Your quote preference is saved on this device.</Text>
+          <Text style={styles.cardHint}>
+            Your quote preference is saved on this device.
+          </Text>
         </View>
 
         <View style={styles.card}>
@@ -533,7 +677,8 @@ export default function LandingScreen() {
             <Text style={styles.cardTitle}>Mindful exercises</Text>
           </View>
           <Text style={styles.cardHint}>
-            Pick one short practice and follow the steps before you start writing.
+            Pick one short practice and follow the steps before you start
+            writing.
           </Text>
 
           <View style={styles.exerciseTabs}>
@@ -573,9 +718,14 @@ export default function LandingScreen() {
 
           <View style={styles.exerciseDetail}>
             <Text style={styles.exerciseTitle}>{selectedExercise.title}</Text>
-            <Text style={styles.exerciseGuidance}>{selectedExercise.guidance}</Text>
+            <Text style={styles.exerciseGuidance}>
+              {selectedExercise.guidance}
+            </Text>
             {selectedExercise.steps.map((step, index) => (
-              <View key={`${selectedExercise.id}-${index}`} style={styles.stepRow}>
+              <View
+                key={`${selectedExercise.id}-${index}`}
+                style={styles.stepRow}
+              >
                 <View style={styles.stepIndex}>
                   <Text style={styles.stepIndexText}>{index + 1}</Text>
                 </View>
@@ -591,7 +741,9 @@ export default function LandingScreen() {
               onPress={() => handleStartExercise(selectedExercise.id)}
             >
               <Ionicons name="play-circle-outline" size={18} color="#151515" />
-              <Text style={styles.startExerciseButtonText}>Start Guided Practice</Text>
+              <Text style={styles.startExerciseButtonText}>
+                Start Guided Practice
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -614,7 +766,7 @@ export default function LandingScreen() {
                 styles.quickNavBtn,
                 { opacity: pressed ? 0.84 : 1 },
               ]}
-              onPress={() => router.push("./guide")}
+              onPress={handleOpenGuide}
             >
               <Ionicons name="help-circle-outline" size={16} color={C.amber} />
               <Text style={styles.quickNavText}>Guide</Text>
@@ -780,6 +932,74 @@ function makeStyles(C: SpiralColorSet) {
       fontSize: 13,
       color: C.textPrimary,
       fontWeight: "600",
+    },
+    guideOverlay: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: C.overlay,
+    },
+    guideSheet: {
+      maxHeight: "84%",
+      backgroundColor: C.surface,
+      borderTopLeftRadius: SpiralRadius.xl,
+      borderTopRightRadius: SpiralRadius.xl,
+      borderWidth: 1,
+      borderBottomWidth: 0,
+      borderColor: C.border,
+      padding: SpiralSpacing.lg,
+      paddingBottom: SpiralSpacing.xl,
+      gap: 12,
+    },
+    guideHeader: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: SpiralSpacing.md,
+    },
+    guideTitleWrap: {
+      flex: 1,
+      gap: 6,
+    },
+    guideTitle: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: C.textPrimary,
+    },
+    guideSubtitle: {
+      fontSize: 13,
+      lineHeight: 19,
+      color: C.textSecondary,
+    },
+    guideScroll: {
+      flexGrow: 0,
+    },
+    guideContent: {
+      gap: 10,
+      paddingBottom: 4,
+    },
+    guideStepCard: {
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: SpiralRadius.lg,
+      backgroundColor: C.surfaceElevated,
+      padding: SpiralSpacing.md,
+      gap: 8,
+    },
+    guideStepHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+    },
+    guideStepTitle: {
+      flex: 1,
+      fontSize: 14,
+      fontWeight: "700",
+      color: C.textPrimary,
+    },
+    guideStepMeta: {
+      fontSize: 13,
+      lineHeight: 20,
+      color: C.textSecondary,
     },
 
     headerRow: {

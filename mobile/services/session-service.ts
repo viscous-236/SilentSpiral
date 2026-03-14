@@ -2,6 +2,16 @@ import { api } from "./api";
 
 const SESSION_DURATION_SECONDS = 600;
 
+function isNetworkError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message.toLowerCase() : "";
+  return (
+    message.includes("cannot reach api") ||
+    message.includes("network") ||
+    message.includes("failed") ||
+    message.includes("timeout")
+  );
+}
+
 export interface SessionTurn {
   role: "user" | "agent";
   content: string;
@@ -48,7 +58,10 @@ export async function startSession(
       duration_seconds: req.duration_seconds ?? SESSION_DURATION_SECONDS,
     });
     return data;
-  } catch {
+  } catch (err) {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     return {
       session_id: `local_${Date.now()}`,
       agent_message: "I am here with you. Take your time and share what is heavy.",
@@ -63,7 +76,10 @@ export async function sendSessionMessage(
   try {
     const { data } = await api.post<SessionMessageResponse>("/agent/session/message", req);
     return data;
-  } catch {
+  } catch (err) {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     return {
       agent_reply: "I hear you. Keep going if you want to.",
       remaining_seconds: Math.max(0, SESSION_DURATION_SECONDS - req.elapsed_seconds),
@@ -78,7 +94,10 @@ export async function closeSession(
   try {
     const { data } = await api.post<SessionCloseResponse>("/agent/session/close", req);
     return data;
-  } catch {
+  } catch (err) {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     return {
       closing_message:
         "Thank you for letting that out. You gave your feelings space, and that matters.",

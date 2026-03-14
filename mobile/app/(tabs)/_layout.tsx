@@ -91,10 +91,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="guide"
         options={{
-          title: "Guide",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="help-circle-outline" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
       <Tabs.Screen

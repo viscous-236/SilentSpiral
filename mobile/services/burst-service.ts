@@ -13,6 +13,16 @@
 
 import { api } from "./api";
 
+function isNetworkError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message.toLowerCase() : "";
+  return (
+    message.includes("cannot reach api") ||
+    message.includes("network") ||
+    message.includes("failed") ||
+    message.includes("timeout")
+  );
+}
+
 // ─── Ack (mid-session) ────────────────────────────────────────────────────────
 
 export interface BurstAckRequest {
@@ -37,7 +47,10 @@ export async function sendBurstAck(
   try {
     const { data } = await api.post<BurstAckResponse>("/agent/burst/ack", req);
     return data;
-  } catch {
+  } catch (err) {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     // Graceful degradation — never crash the user's venting session
     return { acknowledgment: "I'm right here with you." };
   }
@@ -68,7 +81,10 @@ export async function sendBurstClose(
       req
     );
     return data;
-  } catch {
+  } catch (err) {
+    if (!isNetworkError(err)) {
+      throw err;
+    }
     return {
       closing_message:
         "You showed up for yourself tonight — that matters. Take a gentle breath when you're ready.",
