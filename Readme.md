@@ -81,7 +81,6 @@ This backend separates the AI stack into two layers:
    - Reflection Agent (`POST /agent/reflect`)
    - Pattern Agent (`POST /agent/pattern`)
    - Coach Agent (`POST /agent/coach`)
-   - Burst Agent (`POST /agent/burst/ack`, `POST /agent/burst/close`)
    - Session Agent (`POST /agent/session/start|message|close`)
 
 ### Agent-by-Agent Responsibilities
@@ -91,7 +90,6 @@ This backend separates the AI stack into two layers:
 | Reflection | `/agent/reflect` | Journal text + detected emotions + optional history + optional mirror phrase | Exactly 2 open-ended reflection questions | Non-clinical language, short questions, fallback questions on parse/API failure |
 | Pattern | `/agent/pattern` | `WindowStats` + optional anomaly + optional history summary | 3-5 insight sentences + 1 short card highlight | Observation-only tone (no diagnosis), fallback narrative on parse/API failure |
 | Coach | `/agent/coach` | Pattern narrative + anomaly flag + optional user preferences | 0-2 micro-habit suggestions + 1-day challenge | If `anomaly_flag` is `null`, it short-circuits (no LLM call, empty response) |
-| Burst | `/agent/burst/ack`, `/agent/burst/close` | Mid-session partial text or full session text | Short witness acknowledgment or warm 2-3 sentence closure | Ephemeral by design: no auth, no persistence, fallback text on failure |
 | Session | `/agent/session/start`, `/agent/session/message`, `/agent/session/close` | Client-provided session timeline + history | Opening line, turn-by-turn listener reply, final closing line | Server stores no conversation; session timing encoded in `session_id` |
 
 ### End-to-End Journal Orchestration
@@ -289,11 +287,6 @@ cd backend
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-API docs:
-
-- Swagger: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- Health: http://localhost:8000/health
 
 ### 2) Mobile setup
 
