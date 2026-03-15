@@ -38,14 +38,7 @@ export async function transcribeAudioUri(
 ): Promise<TranscribeResponse> {
   const meta = inferAudioMeta(audioUri);
 
-  const envFallbacks = process.env.EXPO_PUBLIC_API_FALLBACK_URLS
-    ?.split(",")
-    .map((u: string) => u.trim())
-    .filter(Boolean) ?? [];
-
-  const baseCandidates = [getActiveApiBaseUrl(), ...envFallbacks].filter(
-    (url, idx, all) => all.indexOf(url) === idx,
-  );
+  const baseCandidates = [getActiveApiBaseUrl()];
 
   let lastError = "Unknown error";
 
