@@ -13,7 +13,7 @@ def test_settings_loads_with_defaults():
     """Settings can be instantiated with all defaults."""
     from app.core.config import Settings
     s = Settings()
-    assert s.app_name == "Silent Spiral API"
+    assert s.app_name == "Reflectra API"
     assert s.nlp_emotion_threshold == 0.1
     assert s.nlp_top_k == 5
     assert s.debug is False

@@ -2,7 +2,7 @@
 tests/test_agent_evaluation.py
 ================================
 Agent Evaluation Suite — applies agent-evaluation methodology to the
-Silent Spiral backend.
+Reflectra backend.
 
 Evaluation methodology applied:
   ✓ Behavioral contract tests  — structural invariants, not string matching

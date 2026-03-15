@@ -27,7 +27,7 @@ export const Colors = {
   },
 };
 
-// ─── Silent Spiral Design System ────────────────────────────────────────────
+// ─── Reflectra Design System ────────────────────────────────────────────────
 
 export const SpiralColorsDark = {
   midnight:        '#0B0F1A',

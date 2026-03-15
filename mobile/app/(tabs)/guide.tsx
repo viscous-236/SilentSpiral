@@ -92,7 +92,7 @@ export default function GuideScreen() {
       >
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.pageTitle}>How to use Silent Spiral</Text>
+            <Text style={styles.pageTitle}>How to use Reflectra</Text>
             <Text style={styles.pageSubtitle}>
               What to do, what happens, and why it matters
             </Text>

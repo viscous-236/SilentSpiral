@@ -57,7 +57,7 @@ const INSPIRATION_QUOTES: InspirationQuote[] = [
   },
   {
     text: "Small steady care, repeated daily, can change the shape of a hard week.",
-    author: "Silent Spiral",
+    author: "Reflectra",
     category: "resilience",
   },
   {
@@ -499,7 +499,7 @@ export default function LandingScreen() {
           <View style={styles.guideSheet}>
             <View style={styles.guideHeader}>
               <View style={styles.guideTitleWrap}>
-                <Text style={styles.guideTitle}>How to use Silent Spiral</Text>
+                <Text style={styles.guideTitle}>How to use Reflectra</Text>
                 <Text style={styles.guideSubtitle}>
                   Journal, reflect, track patterns, then take one small next
                   step.

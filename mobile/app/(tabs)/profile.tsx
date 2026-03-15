@@ -166,7 +166,7 @@ export default function ProfileScreen() {
         </Pressable>
 
         {/* ── App version ──────────────────────────────────────── */}
-        <Text style={styles.versionText}>Silent Spiral v{APP_VERSION}</Text>
+        <Text style={styles.versionText}>Reflectra v{APP_VERSION}</Text>
 
         {/* Spacer for floating tab bar */}
         <View style={{ height: 100 }} />

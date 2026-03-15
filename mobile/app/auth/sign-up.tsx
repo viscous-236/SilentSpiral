@@ -55,7 +55,7 @@ export default function SignUpScreen() {
           <Animated.View entering={FadeInDown.springify()} style={styles.brand}>
             <View style={[styles.brandDot, { backgroundColor: C.amber }]} />
             <Text style={[styles.brandName, { color: C.textPrimary }]}>
-              Silent Spiral
+              Reflectra
             </Text>
           </Animated.View>
 

@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     )
 
     # ── App ───────────────────────────────────────────────────────────────────
-    app_name: str = "Silent Spiral API"
+    app_name: str = "Reflectra API"
     app_version: str = "0.1.0"
     debug: bool = False
 
@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     # ── Database (MongoDB Atlas preferred) ──────────────────────────────────
     # Example: mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
     mongodb_url: str = ""
-    mongodb_db_name: str = "silent_spiral"
+    mongodb_db_name: str = "reflectra"
     mongodb_users_collection: str = "users"
 
     # ── Legacy Postgres fallback (optional during migration) ───────────────

@@ -1,5 +1,5 @@
 """
-Silent Spiral — FastAPI Backend
+Reflectra — FastAPI Backend
 ================================
 Entry point for the application.
 
@@ -63,7 +63,7 @@ app = FastAPI(
     version=settings.app_version,
     lifespan=lifespan,
     description=(
-        "Backend API for The Silent Spiral — a personal mental-state "
+        "Backend API for Reflectra — a personal mental-state "
         "awareness companion. Provides NLP emotion analysis, pattern detection, "
         "and AI agent responses."
     ),
