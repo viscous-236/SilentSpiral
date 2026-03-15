@@ -1,177 +1,158 @@
 # Silent Spiral
 
-Silent Spiral is a privacy-first emotional reflection companion built with:
+Silent Spiral is a privacy-first, non-clinical emotional self-awareness companion.
 
-- FastAPI backend for NLP, pattern analysis, and agent orchestration
-- Expo React Native mobile app for journaling, voice capture, and insights
-- Multi-agent pipeline (Reflection, Pattern, Coach, Burst, Session)
+It combines:
 
-This project is designed for self-awareness support and is not a medical product.
+- FastAPI backend for NLP, pattern analysis, and multi-agent orchestration
+- Expo React Native mobile app for journaling, voice capture, check-ins, and insights
+- A multi-agent pipeline: Reflection, Pattern, Coach, Burst, and Session
 
-## Table Of Contents
+This project is for reflection support, not diagnosis or treatment.
 
-- Overview
-- User Journey (What Happens And Why)
-- Architecture
-- Features
-- Tech Stack
-- Project Structure
-- Prerequisites
-- Quick Start (Local)
-- Environment Variables
-- API Reference
-- Testing
-- Troubleshooting
-- Safety Disclaimer
+## What Is Implemented
 
-## Overview
+### Backend
 
-Silent Spiral helps users notice emotional trends early through:
+- Emotion analysis endpoint using GoEmotions model (`POST /analyze`)
+- Pattern window and anomaly detection (`POST /patterns/analyze`)
+- Agent routes:
+  - Reflection (`POST /agent/reflect`)
+  - Pattern narrative (`POST /agent/pattern`)
+  - Coach suggestions (`POST /agent/coach`)
+  - Burst flow (`POST /agent/burst/ack`, `POST /agent/burst/close`)
+  - 10-minute listening session flow (`POST /agent/session/start|message|close`)
+- Audio transcription fallback (`POST /transcribe`)
+- Auth routes (`POST /auth/register`, `POST /auth/login`)
+- Startup warmup for NLP model and DB initialization
 
-- Journal emotion analysis via GoEmotions NLP
-- Pattern summaries and anomaly detection
-- Reflection prompts and micro-challenge coaching
-- Ephemeral listening sessions (Burst and Session flows)
-- Voice transcription fallback for English and Hindi
+### Mobile
 
-## User Journey (What Happens And Why)
-
-This section is written for end users. It explains what each feature is doing and why it exists.
-
-### Step 1: User writes or speaks a journal entry
-
-- What user does: Types thoughts or records voice.
-- What system does: Converts voice to text when needed, then sends text for emotion analysis.
-- Purpose: Reduce friction so users can express themselves even on low-energy days.
-
-### Step 2: Emotion Analysis runs
-
-- What user sees: Top emotions, intensity, and a simple emotional category.
-- What system does: Uses the GoEmotions NLP model to score multiple emotions from the text.
-- Purpose: Turn vague feelings into concrete emotional language users can understand.
-
-### Step 3: Crisis language check happens
-
-- What user sees: Supportive safety prompt when concerning language is detected.
-- What system does: Flags high-risk text patterns with a `crisis_flag`.
-- Purpose: Add a basic safety layer and encourage timely human support.
-
-### Step 4: Reflection Agent responds
-
-- What user sees: 2 gentle follow-up reflection questions.
-- What system does: `POST /agent/reflect` generates open-ended prompts based on entry + emotions.
-- Purpose: Help users go deeper than surface mood labels and build self-awareness.
-
-### Step 5: Pattern Engine tracks trends over time
-
-- What user sees: Dominant emotion trends, volatility, and pattern summaries.
-- What system does: `POST /patterns/analyze` computes window stats and optional anomaly flags.
-- Purpose: Show repeated emotional cycles, not just one-day snapshots.
-
-### Step 6: Pattern Agent creates insight narrative
-
-- What user sees: Human-readable insight card and headline.
-- What system does: `POST /agent/pattern` turns numeric stats into understandable language.
-- Purpose: Make trend data emotionally meaningful and easy to act on.
-
-### Step 7: Coach Agent suggests one small action
-
-- What user sees: 1-2 small suggestions and a one-day challenge (when needed).
-- What system does: `POST /agent/coach` provides micro-habit guidance if anomaly exists.
-- Purpose: Convert insight into realistic behavior change without pressure.
-
-### Step 8: Burst and Session modes for immediate emotional release
-
-- What user sees: Real-time acknowledgment and a warm closure message.
-- What system does: - `POST /agent/burst/ack` and `POST /agent/burst/close` for short venting flow - `POST /agent/session/start`, `POST /agent/session/message`, `POST /agent/session/close` for private 10-minute guided conversation
-- Purpose: Offer emotional containment during intense moments, without requiring long journaling.
-
-### Step 8.1: 10-minute private listening (how to use)
-
-- What user does: - Open the Check-in tab - Start private listening - Share freely for up to 10 minutes - End session or let timer complete
-- What system does: - Starts an ephemeral timed session - Sends supportive listener replies each turn - Returns a gentle closing message at the end
-- Purpose: Create a safe, time-bounded release space when emotions feel heavy.
-
-### Step 9: Privacy and boundaries
-
-- What user should know: - This app supports reflection, not diagnosis. - Burst and session routes are designed as ephemeral interactions. - Users should contact professional or emergency support in crisis situations.
-- Purpose: Keep expectations clear, safe, and ethically grounded.
+- Auth flow with secure local session persistence
+- Journaling screen with daily prompt, emotion tags, and reflection questions
+- Voice input path with speech recognition and server transcription fallback
+- Silent check-in (5-tap mood logging)
+- 10-minute private listening modal
+- Dashboard with heatmap, timeline, Spiral Score, pattern cards, and coach output
+- Local user-scoped storage via AsyncStorage with migration and cleanup guards
 
 ## Architecture
 
-```text
-Mobile App (Expo)
-            |
-            v
-FastAPI Backend
-      |- /analyze             -> NLP emotion scoring
-      |- /patterns/analyze    -> trend stats + anomaly flag
-      |- /agent/*             -> reflection/pattern/coach/burst/session agents
-      |- /transcribe          -> audio transcription fallback
-      |- /auth/*              -> basic email/password auth (SQLite)
+```mermaid
+flowchart LR
+  U[User] --> M[Expo Mobile App]
+
+  subgraph Mobile
+    M --> J[Journal + Voice]
+    M --> S[Silent Check-in]
+    M --> D[Dashboard]
+    M --> L[Listening Session Modal]
+    M --> LS[(AsyncStorage + SecureStore)]
+  end
+
+  M --> API[FastAPI Backend]
+
+  subgraph Backend
+    API --> A[/analyze]
+    API --> P[/patterns/analyze]
+    API --> AG[/agent/*]
+    API --> T[/transcribe]
+    API --> AU[/auth/*]
+  end
+
+  A --> HF[Transformers GoEmotions]
+  AG --> GQ[Groq LLM]
+  AG --> HFAPI[HuggingFace Inference]
+  AU --> MDB[(MongoDB Atlas)]
+  AG --> QD[(Qdrant Vector Store)]
 ```
 
-## Features
+## Agent Pipeline (Current)
 
-- Emotion analysis from free-text journal entries
-- Emotion category and crisis language flagging
-- Pattern window analysis (dominant emotion, volatility, anomaly)
-- Reflection questions tailored to recent emotional context
-- Pattern narrative cards and coach micro-habits
-- 10-minute private listening session APIs with no server-side session storage
-- Audio-to-text fallback endpoint for mobile voice flows
+```mermaid
+sequenceDiagram
+  participant App as Mobile App
+  participant API as FastAPI
+  participant NLP as NLP Engine
+  participant PA as Pattern Engine
+  participant RA as Reflection Agent
+  participant PGA as Pattern Agent
+  participant CA as Coach Agent
+
+  App->>API: POST /analyze (journal text)
+  API->>NLP: classify emotions
+  NLP-->>API: emotions + intensity + top_emotion
+  API-->>App: AnalyzeResponse
+
+  App->>API: POST /agent/reflect
+  API->>RA: run_reflection(...)
+  RA-->>API: 2 questions
+  API-->>App: reflection questions
+
+  App->>API: POST /patterns/analyze (history)
+  API->>PA: compute window + anomaly
+  PA-->>API: stats + anomaly flag
+  API-->>App: PatternAnalysisResponse
+
+  App->>API: POST /agent/pattern
+  API->>PGA: trend narrative
+  PGA-->>API: insights + highlight
+  API-->>App: pattern cards data
+
+  App->>API: POST /agent/coach
+  API->>CA: micro-habit generation
+  CA-->>API: suggestions + challenge
+  API-->>App: coach output
+```
+
+## Repository Structure
+
+```text
+SilentSpiral/
+  backend/
+    app/
+      agents/
+      core/
+      db/
+      models/
+      routes/
+      schemas/
+      services/
+    tests/
+    requirements.txt
+  mobile/
+    app/
+    components/
+    context/
+    hooks/
+    services/
+    package.json
+  silent_spiral_plan.md
+```
 
 ## Tech Stack
+
+### Backend
+
+- FastAPI, Uvicorn
+- Pydantic v2, pydantic-settings
+- Transformers, Torch, Sentence Transformers
+- LangChain, LangGraph
+- Groq SDK, HuggingFace Hub
+- Qdrant client
+- MongoDB (Motor), SQLAlchemy, Alembic
+- Pytest, pytest-asyncio
 
 ### Mobile
 
 - Expo SDK 54
-- React Native 0.81
+- React Native 0.81, React 19
 - Expo Router
 - Axios
+- expo-av, expo-speech-recognition, expo-secure-store
 - TypeScript
 
-### Backend
-
-- FastAPI + Uvicorn
-- Pydantic v2 + pydantic-settings
-- Transformers + Torch (GoEmotions)
-- LangChain + LangGraph
-- Groq + Hugging Face APIs
-- SQLite (current auth storage), SQLAlchemy/Alembic for evolving persistence
-
-## Project Structure
-
-```text
-Hackrux/
-      backend/
-            app/
-                  agents/
-                  core/
-                  models/
-                  routes/
-                  schemas/
-                  services/
-            tests/
-            requirements.txt
-            .env.example
-      mobile/
-            app/
-            components/
-            context/
-            hooks/
-            services/
-            package.json
-```
-
-## Prerequisites
-
-- Python 3.10+ (3.13 also works with current setup)
-- Node.js 18+ and npm
-- Git
-- Optional API keys for full agent/transcription capability
-
-## Quick Start (Local)
+## Quick Start
 
 ### 1) Backend setup
 
@@ -183,16 +164,16 @@ pip install -r requirements.txt
 copy .env.example .env
 ```
 
-Edit `.env` and add your keys as needed.
+Fill your `.env` values (Groq, HuggingFace, MongoDB, Qdrant as needed).
 
-Start backend:
+Run backend:
 
 ```powershell
 cd backend
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Backend docs:
+API docs:
 
 - Swagger: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
@@ -206,19 +187,17 @@ npm install
 npm run start
 ```
 
-If using a physical device, set API base URL in `mobile/.env.local`:
+Optional mobile env override (`mobile/.env.local`):
 
 ```bash
 EXPO_PUBLIC_API_BASE_URL=http://<your-lan-ip>:8000
 ```
 
-The app will auto-infer host when possible, but explicit env is recommended for device testing.
-
 ## Environment Variables
 
 ### Backend (`backend/.env`)
 
-Key fields currently used by the backend:
+Core keys:
 
 - `DEBUG`
 - `NLP_MODEL_NAME`
@@ -227,50 +206,67 @@ Key fields currently used by the backend:
 - `HUGGINGFACE_API_TOKEN`
 - `GROQ_API_KEY`
 - `GROQ_MODEL`
-- `DATABASE_URL`
+- `MONGODB_URL`
+- `MONGODB_DB_NAME`
+- `MONGODB_USERS_COLLECTION`
+- `QDRANT_URL`
+- `QDRANT_API_KEY`
+- `QDRANT_COLLECTION_NAME`
+- `NEON_DATABASE_URL` (optional fallback)
+- `DATABASE_URL` (legacy fallback)
 
-Notes:
+### Mobile (`mobile/.env` or `.env.local`)
 
-- Missing `GROQ_API_KEY` does not crash startup; some agent routes return graceful fallback behavior.
-- Keep `.env` out of version control.
+- `EXPO_PUBLIC_API_BASE_URL`
 
-## API Reference
+## API Surface
 
-### Core
+### Health
 
-- `GET /health` : service status and active model names
-- `POST /analyze` : classify emotions from journal text
-- `POST /patterns/analyze` : compute window stats and anomaly flag
-- `POST /transcribe` : transcribe uploaded audio (multipart)
+- `GET /health`
 
 ### Auth
 
-- `POST /auth/register` : create user
-- `POST /auth/login` : login user
+- `POST /auth/register`
+- `POST /auth/login`
+
+### NLP + Patterns
+
+- `POST /analyze`
+- `POST /patterns/analyze`
 
 ### Agents
 
-- `POST /agent/reflect` : reflection questions
-- `POST /agent/pattern` : pattern narrative + highlight
-- `POST /agent/coach` : micro-habit suggestions
-- `POST /agent/burst/ack` : short in-session acknowledgment
-- `POST /agent/burst/close` : burst closing message
-- `POST /agent/session/start` : begin private session
-- `POST /agent/session/message` : one message turn
-- `POST /agent/session/close` : end private session
+- `POST /agent/reflect`
+- `POST /agent/pattern`
+- `POST /agent/coach`
+- `POST /agent/burst/ack`
+- `POST /agent/burst/close`
+- `POST /agent/session/start`
+- `POST /agent/session/message`
+- `POST /agent/session/close`
 
-Use Swagger UI for full request and response schemas.
+### Voice
+
+- `POST /transcribe`
+
+## Privacy and Safety Notes
+
+- The app is designed for self-reflection support.
+- Burst and listening session flows are implemented as ephemeral interactions.
+- Mobile data is user-scoped and cleared on sign-out paths.
+- This is not a medical device and does not provide crisis intervention.
 
 ## Testing
 
-From backend directory:
+Run all backend tests:
 
 ```powershell
 cd backend
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Skip integration tests (faster local loop):
+Skip integration tests for faster local iteration:
 
 ```powershell
 cd backend
@@ -279,28 +275,25 @@ cd backend
 
 ## Troubleshooting
 
-### Git Bash terminal crash on Windows
+### First `/analyze` can be slow
 
-If VS Code shows:
+- The model is warmed at startup, but cold boots can still take time on low-resource machines.
 
-`console device allocation failure - too many consoles in use, max consoles is 32`
+### Phone cannot reach backend
 
-Do this:
+- Use `EXPO_PUBLIC_API_BASE_URL` with your LAN IP.
+- Ensure backend runs on `0.0.0.0:8000`.
+- Ensure phone and laptop are on the same Wi-Fi network.
 
-1. Close VS Code completely.
-2. End all `bash.exe`, `git-bash.exe`, and `mintty.exe` processes in Task Manager.
-3. Reopen VS Code and switch default terminal profile to PowerShell.
-4. If needed, restart Windows once to clear orphaned console handles.
+### Missing API keys
 
-### First `/analyze` request is slow
+- Missing `GROQ_API_KEY` and `HUGGINGFACE_API_TOKEN` can cause graceful fallback or route errors depending on endpoint.
 
-The NLP model is warmed up at startup, but initial cold boots can still be heavy on lower-resource machines.
+## Roadmap Reference
 
-### Mobile cannot reach backend from phone
-
-Set `EXPO_PUBLIC_API_BASE_URL` in `mobile/.env.local` to your machine LAN IP and ensure backend is listening on `0.0.0.0:8000`.
+Planning and feature roadmap live in `silent_spiral_plan.md`.
 
 ## Safety Disclaimer
 
-Silent Spiral is not a medical device and does not provide diagnosis, treatment, or crisis intervention.
+Silent Spiral is not a medical product.
 If someone is in immediate danger, contact local emergency or crisis services right away.
